@@ -1,9 +1,10 @@
 
-
+library(tidyverse)
 library(dplyr)
 #############################
 #Simulated mergeda for testing #
 #############################
+library(plyr)
 prsfile= "/Users/TinyDragon/github/PolygenicPTSD/data/test.SBP.all.score"
 bpprs_pcs <- read.table(prsfile, header=T,stringsAsFactors=F)
 bpprs_pcs <- rename(bpprs_pcs, c("X0.01" = "dbp_prs01", "X0.02" = "dbp_prs02", "X0.03" = "sbp_prs03", "X0.04" = "sbp_prs04", "X0.05" = "bp_prs05", "X0.06" = "bp_prs06"))
@@ -15,6 +16,8 @@ bpprs_pcs <- rename(bpprs_pcs, c("X0.01" = "dbp_prs01", "X0.02" = "dbp_prs02", "
 phenofile <- "/Users/TinyDragon/github/PolygenicPTSD/data/example_bpdata.txt" #File name for phenotype mergeda
 pheno <- read.table(phenofile, header=T,stringsAsFactors=F)
 pheno <- rename(pheno, c("sbp_meas" = "SBP_meas", "dbp_meas" = "DBP_meas"))
+
+
 
 #Mutating to simulate all relevant variables we might need
 pheno <- mutate(pheno, 

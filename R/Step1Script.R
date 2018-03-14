@@ -28,16 +28,13 @@
 bpprs_pcs <- read.csv("STUDYPI_prs_pcs.csv")
 
 #Read in your study file with trauma, PTSD, BP, and demographic data. Change STUDYPI in file names below to your study PI last name. Ensure that id=Participant ID#
-
 pheno <- read.csv("STUDYPI_PTSD_BP_demo.csv")
 
-#Merge data files by participant ID#
+####ENSURE ALL VARIABLES ARE INCLUDED PER GUIDELINES, AND CORRECTLY SPELLED!
+#*Margie add quality control step here to check for all variables
 
+#Merge data files by participant ID and Family ID#
 merged <- merge(bpprs_pcs, pheno, by="FID","IID")
-
-
-#Do we want to add this ourselves or just ensure in the instructions that the groups will add missing variables with NA values?
- 
 
 ###############################################################################################
 #Step 1b: Hypertension classification stratified by ancestry (old and new guidelines) #
@@ -47,6 +44,21 @@ merged <- merge(bpprs_pcs, pheno, by="FID","IID")
 
 #NEW Hypertensive status based on continuous measured BP variables or endorsing antihypertensive medication use - new AHA cutoffs#
 #0=normotensive, 1=pre-hypertensive/elevated, 2=hypertensive#
+
+#Also create binary variables in case there are not enough in the pre-hypertensive group
+###Below, 0 = non-hypertensive or pre-hypertensive, 1 = hypertensive
+
+#Finally, Add BP variables adjusted for if antihtn_use = 1
+# SBP + 10 and DBP + 5 if antihtn_use = 1
+
+#Lastly, categorize ancestries
+#Ancestry variable is called 'bestpop' from Adam's data. 
+#European ancestry subjects are labeled as 'eur', Africans are 'afr', African Americans (admixed between European and African) are 'aam'. 
+#Combine the afr and aam samples together for analyses
+#Code 0 = eur, 1 = afr & aam
+
+###ALL ABOVE NEW VARIABLE ADDITIONS ARE INCLUDED IN BELOW COMMAND
+
 library(dplyr)
 merged = mutate(merged, 
                 htn_aha_old =
@@ -56,45 +68,24 @@ merged = mutate(merged,
                 htn_aha_new = 
                   ifelse(SBP_meas<130 & DBP_meas<80 & antihtn_use !=1, 1, 
                          ifelse(SBP_meas<120 & DBP_meas<80, 0,
-                                ifelse(SBP_meas>=130 | DBP_meas>=80 | antihtn_use==1, 2, NA))))
-
-#Visually check to make sure the two new variables htn_aha_old and htn_aha_new were added appropriately
-
-#Also create binary variable in case there are not enough in the pre-hypertensive group
-###Below, 0 = non-hypertensive or pre-hypertensive, 1 = hypertensive
-merged = mutate(merged, 
+                                ifelse(SBP_meas>=130 | DBP_meas>=80 | antihtn_use==1, 2, NA))),
                 htn_aha_old_bi =
                   ifelse((SBP_meas<140 | DBP_meas<90) & antihtn_use != 1, 0,
                          ifelse(SBP_meas>=140 | DBP_meas>=90 | antihtn_use==1, 1, NA)),
                 htn_aha_new_bi = 
                   ifelse(SBP_meas<130 & DBP_meas<80 & antihtn_use != 1, 0,
-                         ifelse((SBP_meas>=130 | DBP_meas>=80) | antihtn_use==1, 1, NA)))
-
-###
-#Add BP variables adjusted for if antihtn_use = 1
-# SBP + 10 and DBP + 5 if antihtn_use = 1
-
-merged = mutate(merged, 
+                         ifelse((SBP_meas>=130 | DBP_meas>=80) | antihtn_use==1, 1, NA)),
                 SBP_meas_adj =
                   ifelse(antihtn_use == 1, SBP_meas + 10, NA),
                 DBP_meas_adj = 
-                  ifelse(antihtn_use ==1, DBP_meas + 5, NA))
-
-
-
-
-#Now categorize ancestries
-#Ancestry variable is called 'bestpop'. 
-#European ancestry subjects are labeled as 'eur', Africans are 'afr', African Americans (admixed between European and African) are 'aam'. 
-#Combine the afr and aam samples together for analyses
-#Code 0 = eur, 1 = afr & aam
-
-merged = mutate(merged, 
+                  ifelse(antihtn_use ==1, DBP_meas + 5, NA),
                 ancestry =
                   ifelse(bestpop == "eur", 0,
                          ifelse(bestpop == "afr" | bestpop == "aam", 1, NA)))
 
-#create indices for subset
+#Visually check to make sure the seven new variables were added appropriately
+
+#Create indices for ancestry stratification
 index_eur = grepl(0, merged$ancestry)
 index_afr = grepl(1, merged$ancestry)
 

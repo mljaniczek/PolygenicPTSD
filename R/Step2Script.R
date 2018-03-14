@@ -3,21 +3,14 @@
 #Questions
 #What to do with studies that didn't have antihtn_use : sensitivity analysis excluding studies that didn't have antihtn-use
 #Will PRS files be all together, or separate for SBP, DBP, HTN? I would prefer them merged with standard naming convention
-#**JEN: Are the principle components different for different groups? Different for ancestry only?
-#May need to modify naming conventions to have eur_pc1, afr_pc1 etc
-
 
 #antihtn strat chi sq run on those that are not NA
 #todo: figure out spss to R missing variable 
 #todo: make check on if variables are the correct num, chr, factor
 #todo: multinom
-#Todo: add in ancestry data
 #Todo: deal with related subjects!
 #todo: add in mean and SD and N for all variables analyzed
-#todo: SBP and DBP PRS need to be loaded
 #todo: for 3 level outcome, possibly report the multiplicative and additive model resutls
-#todo: more rigorous specification for phenotype file, error checking all alround
-#todo: try code in case models DONT fit
 #todo: diagnostics
 
 #####Big questions for Jen
@@ -27,9 +20,6 @@
 #res=dget("summary_lm.txt")
 
 
-
-###Remember to conduct analyses separately in different ancestry groups in your sample based on "ancestry" variable###
-
 #Have files saved to a folder on your Desktop called "PGC_PTSD_BP" and set working directory to that folder#
 #Be sure to change USERNAME so it reflects what your username#
 #Select Windows or Mac path by deleting the "#" in front of the setwd command#
@@ -37,11 +27,20 @@
 #Windows path#
 ##############
 #setwd("C:/Users/USERNAME/Desktop/PGC_PTSD_BP")
+library(MASS)
+library(nnet)
+library(VGAM)
 
 ##########
 #Mac path#
 ##########
 #setwd("Desktop/PGC_PTSD_BP")
+
+#####################
+# Set Study PI name #
+#####################
+#Replace STUDYPI below with last name of Principle Investigator (For example "Sumner")
+study <- "StudyPI"
 
 ##########################
 #Read in merged data file#
@@ -57,8 +56,35 @@ ptsd_vars <- colnames(merged[grepl("ptsd", colnames(merged))]) #selecting the fo
 age_mod <- c("1", "age")
 
 i = 0 
+
+
+#, 'htn_aha_new_bi', 'htn_aha_old_bi'
+#Testing multinom version
+
+
+
+effect = "ME"
+pop = "all"
+for (bp_outcome in c("htn_aha_new_bi", "htn_aha_old_bi", "htn_aha_new", "htn_aha_old")){
+  tryCatch({ #Adding this in case there is an error in any regression; it prints the error without stopping the loop or crashing R! This makes it easy to debug.
+    if (bp_outcome == "htn_aha_new_bi" | bp_outcome == "htn_aha_old_bi"){
+      family = ", family=binomial(), "
+      model = "glm"
+    }
+    if (bp_outcome == "htn_aha_new" | bp_outcome == "htn_aha_old"){
+      model = "multinom"
+      family = ", "
+    }
+    modelformula = paste(bp_outcome, "~ sex + P1 + P2 + P3 + age + ptsd_diag_lt + bp_prs05", sep = "")
+    assign(paste(study, model, effect, bp_outcome, pop,  sep = "_"), paste(model, "(as.formula(modelformula)", family, "data=merged)", sep = ""))
+  }, #Trycatch 1 end curly
+  error=function(e){cat("ERROR :",conditionMessage(e), "\n")}) #BP outcome end
+}
+
+test <- glm(htn_aha_old_bi ~ sex + P1 + P2 + P3 + age + ptsd_diag_lt + bp_prs05, family=binomial(), data = merged)
+
 #Main Loop 
-for (bp_outcome in c("SBP_meas", "DBP_meas")){ #Loop runs through outcomes. Currently just SBP and DBP but will add HTN when ready.
+for (bp_outcome in c("SBP_meas", "DBP_meas", "htn_aha_new_bi", "htn_aha_old_bi", "htn_aha_new", "htn_aha_old")){ #Loop runs through outcomes. Currently just SBP and DBP but will add HTN when ready.
   tryCatch({ #Adding this in case there is an error in any regression; it prints the error without stopping the loop or crashing R! This makes it easy to debug.
       if (bp_outcome == "SBP_meas"){ ##If statement to have loop run on correct PRS according to outcome
         prs_vars = sbp_prs_vars
@@ -66,6 +92,16 @@ for (bp_outcome in c("SBP_meas", "DBP_meas")){ #Loop runs through outcomes. Curr
       if (bp_outcome == "DBP_meas"){ #Indicate dbp prs variables if outcome is DBP
         prs_vars = dbp_prs_vars
       }
+    if (bp_outcome == "htn_aha_new_bi" | bp_outcome == "htn_aha_old_bi"){
+      family = ", family=binomial(), "
+      model = "glm"
+      prs_vars = htn_prs_vars
+    }
+    if (bp_outcome == "htn_aha_new" | bp_outcome == "htn_aha_old"){
+      model = "multinom"
+      family = ", "
+      prs_vars = htn_prs_vars
+    }
     for (pop in c("index_afr", "index_eur")){ #Loop subsets to eur/afr population and uses correct PCs for each ancestry
       tryCatch({
             if (pop == "index_afr"){ 
@@ -94,7 +130,7 @@ for (bp_outcome in c("SBP_meas", "DBP_meas")){ #Loop runs through outcomes. Curr
                     #hypertension and adjustment
                 #Add loop for different BP measurement and remove anthtn_use
         modelformula = paste(bp_outcome, "~ sex + P1 + P2 + P3 + age*",age_choice, "+", ptsd, sign, prs, sep = "")
-        assign(paste(model, bp_outcome, pop, "age", age_choice, ptsd, prs,  sep = "_"), lm(as.formula(modelformula), data=dat))
+        assign(paste(study, model, bp_outcome, pop, "age", age_choice, ptsd, prs,  sep = "_"), lm(as.formula(modelformula), data=dat))
         #Add saving output
         #save(assign...,file=paste("ME",bp_outcome,"age", pop, age_choice, ptsd, prs,".RData",sep="_")) #Save model outputs as an R object
         #lmOut(paste("ptsd_ME",bp_outcome, prs, sep = ""), file=as.character(paste("ptsdlt_res_summary_ME_", bp_outcome, prs, ".csv", sep="")), ndigit=3, writecsv=T)
