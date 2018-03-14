@@ -29,7 +29,7 @@
 #setwd("C:/Users/USERNAME/Desktop/PGC_PTSD_BP")
 library(MASS)
 library(nnet)
-library(VGAM)
+library(VGAM)  
 
 ##########
 #Mac path#
@@ -55,10 +55,111 @@ htn_prs_vars <- colnames(merged)[grepl("^bp_prs", colnames(merged))]
 ptsd_vars <- colnames(merged[grepl("ptsd", colnames(merged))]) #selecting the four ptsd variable names
 age_mod <- c("1", "age")
 
+
+
+#Working Loop 
+
 i = 0 
+for (bp_outcome in c("SBP_meas", "DBP_meas", "SBP_meas_adj", "DBP_meas_adj", "htn_aha_new_bi", "htn_aha_old_bi", "htn_aha_new", "htn_aha_old")){ #Loop runs through outcomes. Currently just SBP and DBP but will add HTN when ready.
+  tryCatch({ #Adding this in case there is an error in any regression; it prints the error without stopping the loop or crashing R! This makes it easy to debug.
+      if (bp_outcome == "SBP_meas"){ ##If statement to have loop run on correct PRS according to outcome
+        prs_vars = sbp_prs_vars
+        antihtn = "antihtn_use +"
+        model = "lm"
+        family = ", "
+      }
+      if (bp_outcome == "DBP_meas"){ #Indicate dbp prs variables if outcome is DBP
+        prs_vars = dbp_prs_vars
+        antihtn = "antihtn_use +"
+        model = "lm"
+        family = ", "
+      }
+    if (bp_outcome == "SBP_meas_adj"){ ##If statement to have loop run on correct PRS according to outcome
+      prs_vars = sbp_prs_vars
+      antihtn = "" #Not including anti-htn medication as covariate in this model since outcome was adjusted +10 to SBP and +5 to DBP if antihtn_use = 1
+      model = "lm"
+      family = ", "
+    }
+    if (bp_outcome == "DBP_meas_adj"){ #Indicate dbp prs variables if outcome is DBP
+      prs_vars = dbp_prs_vars
+      antihtn = ""
+      model = "lm"
+      family = ", "
+    }
+    if (bp_outcome == "htn_aha_new_bi" | bp_outcome == "htn_aha_old_bi"){
+      prs_vars = htn_prs_vars
+      model = "glm"
+      family = ", family=binomial(), "
+      antihtn = "" #Not including anti-htn medication as covariate in this model since it went into the classification of outcome
+    }
+    if (bp_outcome == "htn_aha_new" | bp_outcome == "htn_aha_old"){
+      prs_vars = htn_prs_vars
+      model = "multinom"
+      family = ", "
+      antihtn = ""
+    }
+    for (pop in c("index_afr", "index_eur")){ #Loop subsets to eur/afr population and uses correct PCs for each ancestry
+      tryCatch({
+            if (pop == "index_afr"){ 
+                dat = merged[index_afr,] #so if the population is afr, we have the afr subset of data
+            }
+            if (pop == "index_eur"){
+                dat = merged[index_eur,] #subset of eur population
+            }
+      for (prs in c(prs_vars)){ #Loop runs through PRS variables within the correct subset specified above based on outcome
+          tryCatch({
+            for (ptsd in c(ptsd_vars)){ #Loop runs through PTSD variables
+              tryCatch({
+                for (sign in c("+", "*")){ #Loop runs through main effect/interaction
+                  tryCatch({
+                    if (sign == "+"){ #Define model name for file title (Main Effects model)
+                      effect = "ME"
+                    }
+                    if (sign == "*"){ #Define model name for file title (Interaction model)
+                      effect = "Int"
+                    }
+                for (age_choice in c(age_mod)){ #Loop runs through age and age*age (still figuring out how to make good file name for this, currently it is age_1 and age_age)
+                  tryCatch({
+                    for (gender in c("all", "male", "female")){ #Loop subsets based on gender
+                      tryCatch({
+                        if (gender =="all"){
+                          dat = dat
+                        }
+                        if (gender =="male"){
+                          dat = dat[grep(1, dat$sex),]
+                        }
+                        if (gender =="female"){
+                          dat = dat[grep(0, dat$sex),]
+                        }
+                #Add 55 based on nhaynes
+        modelformula = paste(bp_outcome, "~ sex + P1 + P2 + P3 + age*",age_choice, "+", antihtn, ptsd, sign, prs, sep = "")
+        assign(paste(study, model, effect, bp_outcome, pop, "age", age_choice, gender, ptsd, prs,  sep = "_"), paste(model, "(as.formula(modelformula)", family, "data=dat)", sep = ""))
+        #Add saving output
+        #save(assign...,file=paste("ME",bp_outcome,"age", pop, age_choice, ptsd, prs,".RData",sep="_")) #Save model outputs as an R object
+        #lmOut(paste("ptsd_ME",bp_outcome, prs, sep = ""), file=as.character(paste("ptsdlt_res_summary_ME_", bp_outcome, prs, ".csv", sep="")), ndigit=3, writecsv=T)
+        i = i+1
+        print(i)  
+                      }, #Trycatch 6 end curly
+        error=function(e){cat("ERROR :",conditionMessage(e), "\n")})  } #gender loop end curly
+                    
+        }, #Trycatch 5 end curly
+        error=function(e){cat("ERROR :",conditionMessage(e), "\n")})  } #age loop end curly
+                  }, #Trycatch 4 end curly
+        error=function(e){cat("ERROR :",conditionMessage(e), "\n")})  } #main effect/interaction loop end curly
+        }, #Trycatch 3 end curly
+        error=function(e){cat("ERROR :",conditionMessage(e), "\n")}) } #ptsd loop end curly
+        }, #Trycatch 2 end curly
+      error=function(e){cat("ERROR :",conditionMessage(e), "\n")})   } #prs loop end curly
+      }, #Trycatch 1 end curly
+    error=function(e){cat("ERROR :",conditionMessage(e), "\n")}) } #ancestry loop end curly
+  }, #Trycatch 1 end curly
+  error=function(e){cat("ERROR :",conditionMessage(e), "\n")}) #BP outcome end
+  } #end loop
+  
 
 
-#, 'htn_aha_new_bi', 'htn_aha_old_bi'
+
+#Old below
 #Testing multinom version
 
 
@@ -81,86 +182,94 @@ for (bp_outcome in c("htn_aha_new_bi", "htn_aha_old_bi", "htn_aha_new", "htn_aha
   error=function(e){cat("ERROR :",conditionMessage(e), "\n")}) #BP outcome end
 }
 
-test <- glm(htn_aha_old_bi ~ sex + P1 + P2 + P3 + age + ptsd_diag_lt + bp_prs05, family=binomial(), data = merged)
-
-#Main Loop 
-for (bp_outcome in c("SBP_meas", "DBP_meas", "htn_aha_new_bi", "htn_aha_old_bi", "htn_aha_new", "htn_aha_old")){ #Loop runs through outcomes. Currently just SBP and DBP but will add HTN when ready.
+#Old working 3/14
+i = 0 
+for (bp_outcome in c("SBP_meas", "DBP_meas", "SBP_meas_adj", "DBP_meas_adj", "htn_aha_new_bi", "htn_aha_old_bi", "htn_aha_new", "htn_aha_old")){ #Loop runs through outcomes. Currently just SBP and DBP but will add HTN when ready.
   tryCatch({ #Adding this in case there is an error in any regression; it prints the error without stopping the loop or crashing R! This makes it easy to debug.
-      if (bp_outcome == "SBP_meas"){ ##If statement to have loop run on correct PRS according to outcome
-        prs_vars = sbp_prs_vars
-      }
-      if (bp_outcome == "DBP_meas"){ #Indicate dbp prs variables if outcome is DBP
-        prs_vars = dbp_prs_vars
-      }
+    if (bp_outcome == "SBP_meas"){ ##If statement to have loop run on correct PRS according to outcome
+      prs_vars = sbp_prs_vars
+      antihtn = "antihtn_use +"
+      model = "lm"
+      family = ", "
+    }
+    if (bp_outcome == "DBP_meas"){ #Indicate dbp prs variables if outcome is DBP
+      prs_vars = dbp_prs_vars
+      antihtn = "antihtn_use +"
+      model = "lm"
+      family = ", "
+    }
+    if (bp_outcome == "SBP_meas_adj"){ ##If statement to have loop run on correct PRS according to outcome
+      prs_vars = sbp_prs_vars
+      antihtn = "" #Not including anti-htn medication as covariate in this model since outcome was adjusted +10 to SBP and +5 to DBP if antihtn_use = 1
+      model = "lm"
+      family = ", "
+    }
+    if (bp_outcome == "DBP_meas_adj"){ #Indicate dbp prs variables if outcome is DBP
+      prs_vars = dbp_prs_vars
+      antihtn = ""
+      model = "lm"
+      family = ", "
+    }
     if (bp_outcome == "htn_aha_new_bi" | bp_outcome == "htn_aha_old_bi"){
-      family = ", family=binomial(), "
-      model = "glm"
       prs_vars = htn_prs_vars
+      model = "glm"
+      family = ", family=binomial(), "
+      antihtn = "" #Not including anti-htn medication as covariate in this model since it went into the classification of outcome
     }
     if (bp_outcome == "htn_aha_new" | bp_outcome == "htn_aha_old"){
+      prs_vars = htn_prs_vars
       model = "multinom"
       family = ", "
-      prs_vars = htn_prs_vars
+      antihtn = ""
     }
     for (pop in c("index_afr", "index_eur")){ #Loop subsets to eur/afr population and uses correct PCs for each ancestry
       tryCatch({
-            if (pop == "index_afr"){ 
-                dat = merged[index_afr,] #so if the population is afr, we have the afr subset of data
-            }
-            if (pop == "index_eur"){
-                dat = merged[index_eur,] #subset of eur population
-            }
-        ###DO PCs need to be subsetted or is there common PC variables between ethnicities?
-    for (prs in c(prs_vars)){ #Loop runs through PRS variables within the correct subset specified above based on outcome
+        if (pop == "index_afr"){ 
+          dat = merged[index_afr,] #so if the population is afr, we have the afr subset of data
+        }
+        if (pop == "index_eur"){
+          dat = merged[index_eur,] #subset of eur population
+        }
+        for (prs in c(prs_vars)){ #Loop runs through PRS variables within the correct subset specified above based on outcome
           tryCatch({
             for (ptsd in c(ptsd_vars)){ #Loop runs through PTSD variables
               tryCatch({
                 for (sign in c("+", "*")){ #Loop runs through main effect/interaction
                   tryCatch({
                     if (sign == "+"){ #Define model name for file title (Main Effects model)
-                      model = "ME"
+                      effect = "ME"
                     }
                     if (sign == "*"){ #Define model name for file title (Interaction model)
-                      model = "Int"
+                      effect = "Int"
                     }
-                for (age_choice in c(age_mod)){ #Loop runs through age and age*age (still figuring out how to make good file name for this, currently it is age_1 and age_age)
-                  tryCatch({
-                #Add loop for gender- all, male, female?
-                #Add 55 based on nhaynes
-                    #hypertension and adjustment
-                #Add loop for different BP measurement and remove anthtn_use
-        modelformula = paste(bp_outcome, "~ sex + P1 + P2 + P3 + age*",age_choice, "+", ptsd, sign, prs, sep = "")
-        assign(paste(study, model, bp_outcome, pop, "age", age_choice, ptsd, prs,  sep = "_"), lm(as.formula(modelformula), data=dat))
-        #Add saving output
-        #save(assign...,file=paste("ME",bp_outcome,"age", pop, age_choice, ptsd, prs,".RData",sep="_")) #Save model outputs as an R object
-        #lmOut(paste("ptsd_ME",bp_outcome, prs, sep = ""), file=as.character(paste("ptsdlt_res_summary_ME_", bp_outcome, prs, ".csv", sep="")), ndigit=3, writecsv=T)
-        i = i+1
-        print(i)          
-        }, #Trycatch 5 end curly
-        error=function(e){cat("ERROR :",conditionMessage(e), "\n")})  } #age loop end curly
+                    for (age_choice in c(age_mod)){ #Loop runs through age and age*age (still figuring out how to make good file name for this, currently it is age_1 and age_age)
+                      tryCatch({
+                        #Add loop for gender- all, male, female?
+                        #Add 55 based on nhaynes
+                        #hypertension and adjustment
+                        #Add loop for different BP measurement and remove anthtn_use
+                        modelformula = paste(bp_outcome, "~ sex + P1 + P2 + P3 + age*",age_choice, "+", antihtn, ptsd, sign, prs, sep = "")
+                        assign(paste(study, model, effect, bp_outcome, pop, "age", age_choice, ptsd, prs,  sep = "_"), paste(model, "(as.formula(modelformula)", family, "data=dat)", sep = ""))
+                        #Add saving output
+                        #save(assign...,file=paste("ME",bp_outcome,"age", pop, age_choice, ptsd, prs,".RData",sep="_")) #Save model outputs as an R object
+                        #lmOut(paste("ptsd_ME",bp_outcome, prs, sep = ""), file=as.character(paste("ptsdlt_res_summary_ME_", bp_outcome, prs, ".csv", sep="")), ndigit=3, writecsv=T)
+                        i = i+1
+                        print(i)          
+                      }, #Trycatch 5 end curly
+                      error=function(e){cat("ERROR :",conditionMessage(e), "\n")})  } #age loop end curly
                   }, #Trycatch 4 end curly
-        error=function(e){cat("ERROR :",conditionMessage(e), "\n")})  } #main effect/interaction loop end curly
-        }, #Trycatch 3 end curly
-        error=function(e){cat("ERROR :",conditionMessage(e), "\n")}) } #ptsd loop end curly
-        }, #Trycatch 2 end curly
-      error=function(e){cat("ERROR :",conditionMessage(e), "\n")})   } #prs loop end curly
+                  error=function(e){cat("ERROR :",conditionMessage(e), "\n")})  } #main effect/interaction loop end curly
+              }, #Trycatch 3 end curly
+              error=function(e){cat("ERROR :",conditionMessage(e), "\n")}) } #ptsd loop end curly
+          }, #Trycatch 2 end curly
+          error=function(e){cat("ERROR :",conditionMessage(e), "\n")})   } #prs loop end curly
       }, #Trycatch 1 end curly
-    error=function(e){cat("ERROR :",conditionMessage(e), "\n")}) } #ancestry loop end curly
+      error=function(e){cat("ERROR :",conditionMessage(e), "\n")}) } #ancestry loop end curly
   }, #Trycatch 1 end curly
   error=function(e){cat("ERROR :",conditionMessage(e), "\n")}) #BP outcome end
-  } #end loop
+} #end loop
 
-
-
-
-
-
-
-
-
-
-
-#Old below
+#old
 
 for (bp_outcome in c("SBP_meas", "DBP_meas")){ #Loop runs through outcomes. Currently just SBP and DBP but will add HTN when ready.
   tryCatch({ #Adding this in case there is an error in any regression; it prints the error without stopping the loop or crashing R! This makes it easy to debug.
