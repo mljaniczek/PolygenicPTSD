@@ -2,4 +2,6 @@
 
 export(htn_outcome_classify)
 export(polygenicPTSD_contin)
+export(polygenicPTSD_logit)
+export(polygenicPTSD_multinom)
 export(prsVars)

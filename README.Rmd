@@ -29,38 +29,66 @@ devtools::install_github("margarethannum/PolygenicPTSD")
 
 This is a basic example which shows you how to run the analysis pipeline on simulated data:
 
-```{r example}
-## Load example simulated data
-#data("merged_example")
+```{r example, message = FALSE, eval=FALSE}
+#Load package and the packages it depends on (dplyr and nnet)
+#install.packages("nnet", "dplyr") #if you need to install
+library(polygenicPTSD)
+library(dplyr)
+library(nnet)
 
+## STEP 1a Load and merge
+## Load and merge data (or see example simulated data included with our 
+## package)
+
+data("merged_example")
+
+## Replace STUDYPI below with last name of Principle Investigator (For example "Sumner")
+study <- "StudyPI"
+
+## STEP 1b Categorization
 ## Create dataframe with 7 new categorical variables for hypertension 
 ## classification, continuous BP adjustment for antihypertension use, 
 ## and ancestry (necessary for analysis)
-#classed <- htn_outcome_classify(merged_example)
 
-## Stratify based on ancestry and test to see if there is a 
-## significant difference between old vs new AHA hypertension 
-## classifications within ancestry; saves results in working directory
+classed <- htn_outcome_classify(merged_example)
 
-#First set working directory
-#setwd("~/results/")
-#Then run function
-#
+## Create ancestry stratification indices
 
+index_eur = grepl(0, classed$ancestry)
+index_afr = grepl(1, classed$ancestry)
 
-## Run linear regression analyses on continuous outcomes 
-## (SBP and DBP); saves results in working directory
-#polygenicPTSD_contin(classed)
+## STEP 1C Testing
+## Fisher's test on old vs new AHA guideline classifications 
+## stratified by ancestry
 
-## Run multinomial regressions on categorical hypertension outcome 
-## (tri-level: normotensive, pre-hypertensive, hypertensive); 
-## saves results in working directory
-#polygenicPTSD_multinom(classed)
+## Below functions all save output in working directory.
+## We recommend you create a folder "results" and change your working directory to that location.
 
-## Run logistic regressions on binary categorical hypertension outcome 
-## (non-hypertensive vs hypertensive); saves results in working directory
-#polygenicPTSD_logit(classed)
+setwd("~/results/")
 
+#Then run functions
+
+## STEP 2
+## Linear regression analysis for continuous outcomes (SBP & DBP)
+polygenicPTSD_contin(classed)
+
+## Logistic regression analysis for binary hypertension outcomes 
+## (non-hypertensive & hypertensive)
+
+## STEP 3
+## Multinomial and logistic regression for categorical HTN outcome
+polygenicPTSD_logit(classed)
+
+## Multinomial regression analysis for 3-level hypertension outcomes 
+## (normotensive, pre-hypertensive & hypertensive)
+
+polygenicPTSD_multinom(classed)
+
+## For any questions on documentation refer to full pipeline document 
+## and/or type: ?function to see help documentation
+
+?merged_example
+?polygenicPTSD_logit
 
 
 ```
