@@ -4,6 +4,7 @@ Version: 0.0.0.9000
 Authors@R: person("Margaret", "Hannum", email = "m.hannum@columbia.edu", role = c("aut", "cre"))
 Description: This package is for multi-center use to conduct analysis for the PGC-PTSD pipeline to analyze the interaction between PTSD and BP Polygenic Risk Score (PRS) in predicting various BP outcomes. It includes functions to ensure data has appropriate variables required for analysis, create new variables which classify hypertension outcomes based on old and new AHA criteria, stratify data by ancestry, run linear regressions on continuous BP outcomes and generalized linear models on categorical hypertension outcomes, as well as other requirements for the analysis pipeline. 
 Depends: R (>= 3.4.3)
+Imports: dplyr, plyr, MASS, nnet, VGAM
 License: What license is it under?
 Encoding: UTF-8
 LazyData: true
