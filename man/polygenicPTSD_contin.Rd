@@ -10,12 +10,12 @@ polygenicPTSD_contin(data_entry)
 \item{data_entry}{Dataframe input}
 }
 \value{
-Will return regression objects for all required models, 
-and save them in your working directory. 
+Will return regression objects for all required models,
+and save them in your working directory.
 
-Specifically, runs main effect and interaction models for all 
-4 PTSD variables and PRS variables, using a base model of sex, age, first three 
-ancestry principle components. 
+Specifically, runs main effect and interaction models for all
+4 PTSD variables and PRS variables, using a base model of sex, age, first three
+ancestry principle components.
 
 Regression is stratified by ancestry, and sensitivity analyses
 performed for gender, education, and trauma count.

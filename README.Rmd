@@ -14,7 +14,7 @@ knitr::opts_chunk$set(
 
 # polygenicPTSD
 
-The goal of polygenicPTSD is to make an easy-to-use package for multi-center sites in the PGC-PTSD working group to conduct analysis on the interaction between PTSD and BP Polygenic Risk Score (PRS) in predicting various BP outcomes. It includes functions to ensure data has appropriate variables required for analysis, creates new variables which categorizes continuous BP into categorical hypertension outcomes based on old and new AHA criteria, stratifies data by ancestry, runs linear regressions on continuous BP outcomes and generalized linear models on categorical hypertension outcomes, and more. 
+The goal of polygenicPTSD is to make an easy-to-use package for multi-center sites in the PGC-PTSD Physical Health Workgroup to conduct analysis on the interaction between PTSD and BP Polygenic Risk Score (PRS) in predicting various BP outcomes. It includes functions to ensure data has appropriate variables required for analysis, creates new variables which categorizes continuous BP into categorical hypertension outcomes based on old and new AHA criteria, stratifies data by ancestry, runs linear regressions on continuous BP outcomes and generalized linear models on categorical hypertension outcomes, and more. 
 
 ## Installation
 
